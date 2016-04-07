@@ -75,6 +75,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected Button mStopUpdatesButton;
     protected TextView mLatitudeTextView;
     protected TextView mLongitudeTextView;
+    protected TextView errcheck;
 
     protected String mLatitudeLabel;
     protected String mLongitudeLabel;
@@ -97,6 +98,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mStopUpdatesButton = (Button) findViewById(R.id.stop_updates_button);
         mLatitudeTextView = (TextView) findViewById(R.id.latitude_text);
         mLongitudeTextView = (TextView) findViewById(R.id.longitude_text);
+        errcheck = (TextView) findViewById(R.id.err);
         mLatitudeLabel = getResources().getString(R.string.latitude_label);
         mLongitudeLabel = getResources().getString(R.string.longitude_label);
         mRequestingLocationUpdates = false;
@@ -209,26 +211,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng mypos = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
 
 //        myFirebaseRef.child("message").setValue(mypos);
-        TelephonyManager mngr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        String unqid = mngr.getDeviceId();
-        myFirebaseRef.child("message").child(unqid).setValue(mypos, new Firebase.CompletionListener() {
+//        TelephonyManager mngr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+//        String unqid = mngr.getDeviceId();
+        myFirebaseRef.child("message").child("random").setValue(mypos, new Firebase.CompletionListener() {
             @Override
             public void onComplete(FirebaseError firebaseError, Firebase firebase) {
                 if (firebaseError != null) {
+                    errcheck.setText("Data could not be saved. " + firebaseError.getMessage());
                     System.out.println("Data could not be saved. " + firebaseError.getMessage());
                 } else {
+                    errcheck.setText("Data saved successfully.");
                     System.out.println("Data saved successfully.");
                 }
-            }
-        });
-        myFirebaseRef.child("message").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-
-            }
-
-            @Override
-            public void onCancelled(FirebaseError error) {
             }
         });
 
