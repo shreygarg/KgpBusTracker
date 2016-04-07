@@ -1,13 +1,22 @@
 package com.example.shreygarg.bustracker;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.firebase.client.DataSnapshot;
+import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.ValueEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
@@ -77,6 +86,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mymap;
     private Marker mMarker;
 
+    Firebase myFirebaseRef;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,11 +101,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mLongitudeLabel = getResources().getString(R.string.longitude_label);
         mRequestingLocationUpdates = false;
         mLastUpdateTime = "";
+        Firebase.setAndroidContext(this);
+        myFirebaseRef = new Firebase("https://burning-inferno-1809.firebaseio.com/");
         updateValuesFromBundle(savedInstanceState);
         buildGoogleApiClient();
-        SupportMapFragment mapFragment = (SupportMapFragment)getSupportFragmentManager()
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-
         mapFragment.getMapAsync(this);
     }
 
@@ -165,6 +177,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     protected void startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
         LocationServices.FusedLocationApi.requestLocationUpdates(
                 mGoogleApiClient, mLocationRequest, this);
     }
@@ -184,12 +206,36 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 mCurrentLocation.getLatitude()));
         mLongitudeTextView.setText(String.format("%s: %f", mLongitudeLabel,
                 mCurrentLocation.getLongitude()));
-        LatLng mypos = new LatLng( mCurrentLocation.getLatitude(),  mCurrentLocation.getLongitude());
-        if(mMarker!=null) {
+        LatLng mypos = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+
+//        myFirebaseRef.child("message").setValue(mypos);
+        TelephonyManager mngr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        String unqid = mngr.getDeviceId();
+        myFirebaseRef.child("message").child(unqid).setValue(mypos, new Firebase.CompletionListener() {
+            @Override
+            public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+                if (firebaseError != null) {
+                    System.out.println("Data could not be saved. " + firebaseError.getMessage());
+                } else {
+                    System.out.println("Data saved successfully.");
+                }
+            }
+        });
+        myFirebaseRef.child("message").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onCancelled(FirebaseError error) {
+            }
+        });
+
+        if (mMarker != null) {
             mMarker.remove();
-            mMarker= mymap.addMarker(new MarkerOptions().position(mypos).title("This is mee").snippet("Im doing shit here!"));
-        }
-        else {
+            mMarker = mymap.addMarker(new MarkerOptions().position(mypos).title("This is mee").snippet("Im doing shit here!"));
+        } else {
             mMarker = mymap.addMarker(new MarkerOptions().position(mypos).title("This is mee").snippet("Im doing shit here!"));
             mymap.moveCamera(CameraUpdateFactory.newLatLngZoom(mypos, 16));
         }
@@ -233,6 +279,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onConnected(Bundle connectionHint) {
         Log.i(TAG, "Connected to GoogleApiClient");
         if (mCurrentLocation == null) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
             mCurrentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
             mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
             updateUI();
