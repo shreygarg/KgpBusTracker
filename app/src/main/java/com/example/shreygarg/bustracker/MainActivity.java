@@ -35,7 +35,10 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -85,10 +88,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected String mLastUpdateTime;
 
     private GoogleMap mymap;
-    private Marker mMarker;
-
+    public ArrayList <Marker> mMarker = new ArrayList<Marker>();
     Firebase myFirebaseRef;
-
+    public int noofbuses;
+    public HashMap <String,String>hm;//= new HashMap();
+    private boolean isinit;
+    public LatLng mygpos;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,6 +108,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mLongitudeLabel = getResources().getString(R.string.longitude_label);
         mRequestingLocationUpdates = false;
         mLastUpdateTime = "";
+        isinit=true;
+        hm = new HashMap<String,String>();
+        hm.put("Shrey","865072026684632");
+        hm.put("Nitesh","357215069705690");
+        noofbuses = hm.size();
         Firebase.setAndroidContext(this);
         myFirebaseRef = new Firebase("https://burning-inferno-1809.firebaseio.com/");
         updateValuesFromBundle(savedInstanceState);
@@ -209,30 +219,81 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mLongitudeTextView.setText(String.format("%s: %f", mLongitudeLabel,
                 mCurrentLocation.getLongitude()));
         LatLng mypos = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+        mygpos=mypos;
+        if(isinit) {
+                mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
+                mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
+                mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
 
-//        myFirebaseRef.child("message").setValue(mypos);
-//        TelephonyManager mngr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-//        String unqid = mngr.getDeviceId();
-        myFirebaseRef.child("message").child("random").setValue(mypos, new Firebase.CompletionListener() {
+            mymap.moveCamera(CameraUpdateFactory.newLatLngZoom(mypos, 16));
+            isinit=false;
+        }
+        TelephonyManager mngr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        String unqid = mngr.getDeviceId();
+        boolean isbus=false;
+        for(Map.Entry m:hm.entrySet()){
+            if(m.getValue().toString().contains(unqid) || unqid.contains(m.getValue().toString())) {
+                isbus=true;
+                break;
+            }
+        }
+        if(isbus) {
+            myFirebaseRef.child("message").child(unqid).setValue(mypos, new Firebase.CompletionListener() {
+                @Override
+                public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+                    if (firebaseError != null) {
+                        System.out.println("Data could not be saved. " + firebaseError.getMessage());
+                    } else {
+                        System.out.println("Data saved successfully.");
+                    }
+                }
+            });
+        }
+        myFirebaseRef.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onComplete(FirebaseError firebaseError, Firebase firebase) {
-                if (firebaseError != null) {
-                    errcheck.setText("Data could not be saved. " + firebaseError.getMessage());
-                    System.out.println("Data could not be saved. " + firebaseError.getMessage());
+            public void onDataChange(DataSnapshot snapshot) {
+                errcheck.setText("");
+                System.out.println("There are " + snapshot.getChildrenCount() + " blog posts");
+                DataSnapshot postSnapshot=snapshot.child("message");
+                int i=0;
+                String name="test";
+                for (DataSnapshot finalSnapshot : postSnapshot.getChildren()) {
+                    String imei = finalSnapshot.getKey().toString();
+                    for(Map.Entry m:hm.entrySet()){
+//                        errcheck.append(imei+"\n"+m.getValue().toString()+"\n");
+                       if(m.getValue().toString().contains(imei) || imei.contains(m.getValue().toString())) {
+                           name = m.getKey().toString();
+//                           errcheck.append(name+"\n");
+                       }
+                    }
+                    Double currlat = Double.parseDouble(finalSnapshot.child("latitude").getValue().toString());
+                    Double currlong = Double.parseDouble(finalSnapshot.child("longitude").getValue().toString());
+                    LatLng tmp = new LatLng(currlat,currlong);
+//                    mymap.clear();
+//                    errcheck.append(Integer.toString(i)+"\n");
+                    if ( mMarker.get(i)!= null) {
+                        mMarker.get(i).remove();
+                        mMarker.set(i,mymap.addMarker(new MarkerOptions().position(tmp).title(name).snippet(imei)));
+                    } else {
+                        mMarker.set(i, mymap.addMarker(new MarkerOptions().position(tmp).title(name).snippet(imei)));
+//                        mymap.moveCamera(CameraUpdateFactory.newLatLngZoom(tmp, 16));
+                    }
+                    i++;
+                }
+                if ( mMarker.get(i)!= null) {
+                    mMarker.get(i).remove();
+                    mMarker.add(mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
+
                 } else {
-                    errcheck.setText("Data saved successfully.");
-                    System.out.println("Data saved successfully.");
+                    mMarker.add(mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
                 }
             }
-        });
 
-        if (mMarker != null) {
-            mMarker.remove();
-            mMarker = mymap.addMarker(new MarkerOptions().position(mypos).title("This is mee").snippet("Im doing shit here!"));
-        } else {
-            mMarker = mymap.addMarker(new MarkerOptions().position(mypos).title("This is mee").snippet("Im doing shit here!"));
-            mymap.moveCamera(CameraUpdateFactory.newLatLngZoom(mypos, 16));
-        }
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                System.out.println("The read failed: " + firebaseError.getMessage());
+            }
+        });
 
     }
 
