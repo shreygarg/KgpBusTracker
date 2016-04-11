@@ -282,10 +282,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 if ( mMarker.get(i)!= null) {
                     mMarker.get(i).remove();
-                    mMarker.add(mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
+                    mMarker.set(i,mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
 
                 } else {
-                    mMarker.add(mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
+                    mMarker.set(i,mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
                 }
             }
 
