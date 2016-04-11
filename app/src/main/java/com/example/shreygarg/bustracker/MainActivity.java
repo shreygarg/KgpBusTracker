@@ -12,7 +12,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
@@ -34,11 +33,21 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import java.io.InputStream;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 
 
 /**
@@ -86,7 +95,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     protected Boolean mRequestingLocationUpdates;
     protected String mLastUpdateTime;
-
+    private int results;
     private GoogleMap mymap;
     public ArrayList <Marker> mMarker = new ArrayList<Marker>();
     Firebase myFirebaseRef;
@@ -98,7 +107,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        getphoneperm();
         mStartUpdatesButton = (Button) findViewById(R.id.start_updates_button);
         mStopUpdatesButton = (Button) findViewById(R.id.stop_updates_button);
         mLatitudeTextView = (TextView) findViewById(R.id.latitude_text);
@@ -170,6 +179,38 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mLocationRequest.setFastestInterval(FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
+    private void getphoneperm()
+    {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.READ_PHONE_STATE)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_PHONE_STATE},
+                        results);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+            return;
+        }
+    }
 
     public void startUpdatesButtonHandler(View view) {
         if (!mRequestingLocationUpdates) {
@@ -197,11 +238,31 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        results);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
             return;
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(
                 mGoogleApiClient, mLocationRequest, this);
     }
+
 
     private void setButtonsEnabledState() {
         if (mRequestingLocationUpdates) {
@@ -212,7 +273,30 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             mStopUpdatesButton.setEnabled(false);
         }
     }
+    public double CalculationByDistance(LatLng StartP, LatLng EndP) {
+        int Radius = 6371;// radius of earth in Km
+        double lat1 = StartP.latitude;
+        double lat2 = EndP.latitude;
+        double lon1 = StartP.longitude;
+        double lon2 = EndP.longitude;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1))
+                * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2)
+                * Math.sin(dLon / 2);
+        double c = 2 * Math.asin(Math.sqrt(a));
+        double valueResult = Radius * c;
+        double km = valueResult / 1;
+        DecimalFormat newFormat = new DecimalFormat("####");
+        int kmInDec = Integer.valueOf(newFormat.format(km));
+        double meter = valueResult % 1000;
+        int meterInDec = Integer.valueOf(newFormat.format(meter));
+        Log.i("Radius Value", "" + valueResult + "   KM  " + kmInDec
+                + " Meter   " + meterInDec);
 
+        return Radius * c;
+    }
     private void updateUI() {
         mLatitudeTextView.setText(String.format("%s: %f", mLatitudeLabel,
                 mCurrentLocation.getLatitude()));
@@ -221,9 +305,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng mypos = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
         mygpos=mypos;
         if(isinit) {
-                mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
-                mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
-                mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
+            mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
+            mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
+            mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
 
             mymap.moveCamera(CameraUpdateFactory.newLatLngZoom(mypos, 16));
             isinit=false;
@@ -261,10 +345,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     String imei = finalSnapshot.getKey().toString();
                     for(Map.Entry m:hm.entrySet()){
 //                        errcheck.append(imei+"\n"+m.getValue().toString()+"\n");
-                       if(m.getValue().toString().contains(imei) || imei.contains(m.getValue().toString())) {
-                           name = m.getKey().toString();
+                        if(m.getValue().toString().contains(imei) || imei.contains(m.getValue().toString())) {
+                            name = m.getKey().toString();
 //                           errcheck.append(name+"\n");
-                       }
+                        }
                     }
                     Double currlat = Double.parseDouble(finalSnapshot.child("latitude").getValue().toString());
                     Double currlong = Double.parseDouble(finalSnapshot.child("longitude").getValue().toString());
