@@ -54,22 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
-
-/**
- * Getting Location Updates.
- *
- * Demonstrates how to use the Fused Location Provider API to get updates about a device's
- * location. The Fused Location Provider is part of the Google Play services location APIs.
- *
- * For a simpler example that shows the use of Google Play services to fetch the last known location
- * of a device, see
- * https://github.com/googlesamples/android-play-location/tree/master/BasicLocation.
- *
- * This sample uses Google Play services, but it does not require authentication. For a sample that
- * uses Google Play services for authentication, see
- * https://github.com/googlesamples/android-google-accounts/tree/master/QuickStart.
- */
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback,
         ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
 
@@ -122,12 +106,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public LatLng mygpos;
 //    public int flag = 0;
     public LatLng bus;
+    public int[] bus1 = new int[10];
+    public int prevval=0;
+    public  int prevind=0;
+    public  int minindex;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         getphoneperm();
+        for(int g=0;g<10;g++)
+            bus1[g]=0;
         hall[0] = rk;
         hall[1] = ms;
         hall[2] = llr;
@@ -384,7 +374,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        flag=0;
 
         // Start downloading json data from Google Directions API
-        final int minindex = distancetohall.indexOf(Collections.min(distancetohall));
+        minindex = distancetohall.indexOf(Collections.min(distancetohall));
         mygpos = mypos;
         if (isinit) {
             mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
@@ -421,7 +411,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 errcheck.setText("");
                 System.out.println("There are " + snapshot.getChildrenCount() + " blog posts");
                 DataSnapshot postSnapshot = snapshot.child("message");
-                int i = 0;
+                int iter = 0;
                 String name = "test";
                 double dist=100000;
                 for (DataSnapshot finalSnapshot : postSnapshot.getChildren()) {
@@ -442,10 +432,44 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                      dist=temp;
                         bus=tmp;
                     }
+
 //                    flag=2;
+                    if(iter==0){
 
-
-
+                        for(int i=0;i<10;i++){
+                            double ttmp= CalculationByDistance(tmp,hall[i]);
+                            if(prevind==i && prevval==2){
+                                if(ttmp<0.045)
+                                    break;
+                                else{
+                                    bus1[i]=1; // crossed
+                                }
+                            }
+                            if(ttmp<0.045){
+                                prevind=i;
+                                prevval=2;
+                                bus1[i]=2;  // is there
+                                break;
+                            }
+                        }
+                    }
+                    int currstop=0;
+                    for(int i=0;i<10;i++) {
+                        if (bus1[i] == 0 || bus1[i] == 2) {
+                            currstop = i;
+                            break;
+                        }
+                    }
+                    Double tmpmin=99999999.0;
+                    if(minindex<currstop){
+                        for(int i=currstop;i<10;i++)
+                        {
+                            if(tmpmin>distancetohall.get(i)){
+                                tmpmin=distancetohall.get(i);
+                                minindex=i;
+                            }
+                        }
+                    }
 //                    float[] results = new float[1];
 //                    Location.distanceBetween(mypos.latitude, mypos.longitude, ms.latitude, ms.longitude, results);
 //                    if (dist < results[0])
@@ -456,26 +480,26 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 //                    mymap.clear();
 //                    errcheck.append(Integer.toString(i)+"\n");
-                    if (mMarker.get(i) != null) {
-                        mMarker.get(i).remove();
-                        mMarker.set(i, mymap.addMarker(new MarkerOptions().position(tmp).title(name).snippet(imei)));
+                    if (mMarker.get(iter) != null) {
+                        mMarker.get(iter).remove();
+                        mMarker.set(iter, mymap.addMarker(new MarkerOptions().position(tmp).title(name).snippet(imei)));
                     } else {
-                        mMarker.set(i, mymap.addMarker(new MarkerOptions().position(tmp).title(name).snippet(imei)));
+                        mMarker.set(iter, mymap.addMarker(new MarkerOptions().position(tmp).title(name).snippet(imei)));
 //                        mymap.moveCamera(CameraUpdateFactory.newLatLngZoom(tmp, 16));
                     }
-                    i++;
+                    iter++;
                 }
 
                 gettime(bus,minindex);
 
 //                errcheck.setText(Double.toString(dist));
 
-                if (mMarker.get(i) != null) {
-                    mMarker.get(i).remove();
-                    mMarker.set(i, mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
+                if (mMarker.get(iter) != null) {
+                    mMarker.get(iter).remove();
+                    mMarker.set(iter, mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
 
                 } else {
-                    mMarker.set(i, mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
+                    mMarker.set(iter, mymap.addMarker(new MarkerOptions().position(mygpos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
                 }
             }
 
