@@ -1,15 +1,22 @@
 package com.example.shreygarg.bustracker;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -35,6 +42,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.json.JSONObject;
@@ -110,11 +118,31 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public int prevval=0;
     public  int prevind=0;
     public  int minindex;
+    Polyline poly=null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        if(!isLocationEnabled(this)){
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete entry")
+                    .setMessage("Are you sure you want to delete this entry?")
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            System.exit(1);
+                            // continue with delete
+                        }
+                    })
+                    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            System.exit(1);
+                        }
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
+            System.exit(1);
+        }
         getphoneperm();
         for(int g=0;g<10;g++)
             bus1[g]=0;
@@ -140,7 +168,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         isinit = true;
         hm = new HashMap<String, String>();
         hm.put("Shrey", "865072026684632");
-        hm.put("Nitesh", "357215069705690");
+//        hm.put("Nitesh", "357215069705690");
         noofbuses = hm.size();
         Firebase.setAndroidContext(this);
         myFirebaseRef = new Firebase("https://burning-inferno-1809.firebaseio.com/");
@@ -151,6 +179,27 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
     }
 
+    public static boolean isLocationEnabled(Context context) {
+        int locationMode = 0;
+        String locationProviders;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+            try {
+                locationMode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE);
+
+            } catch (Settings.SettingNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            return locationMode != Settings.Secure.LOCATION_MODE_OFF;
+
+        }else{
+            locationProviders = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+            return !TextUtils.isEmpty(locationProviders);
+        }
+
+
+    }
     /**
      * Updates fields based on data stored in the bundle.
      *
@@ -378,7 +427,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mygpos = mypos;
         if (isinit) {
             mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
-            mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
+//            mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Click Start to start")));
             mMarker.add(mymap.addMarker(new MarkerOptions().position(mypos).title("Me").snippet("I am here!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))));
 
             mymap.moveCamera(CameraUpdateFactory.newLatLngZoom(mypos, 16));
@@ -408,7 +457,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         myFirebaseRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                errcheck.setText("");
+//                errcheck.setText("");
                 System.out.println("There are " + snapshot.getChildrenCount() + " blog posts");
                 DataSnapshot postSnapshot = snapshot.child("message");
                 int iter = 0;
@@ -571,7 +620,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onLocationChanged(Location location) {
         mCurrentLocation = location;
         mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
-        errcheck.setText("lol");
+//        errcheck.setText("lol");
         updateUI();
 //        Toast.makeText(this, "s"),
 //                Toast.LENGTH_SHORT).show();
@@ -749,8 +798,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(getBaseContext(), "No Points", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-
             // Traversing through all the routes
             for (int i = 0; i < result.size(); i++) {
                 points = new ArrayList<LatLng>();
@@ -786,9 +833,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             errcheck.setText("Distance:" + distance + ", Duration:" + duration);
+            if(poly!=null)
+                poly.remove();
 
             // Drawing polyline in the Google Map for the i-th route
-            mymap.addPolyline(lineOptions);
+            poly=mymap.addPolyline(lineOptions);
         }
     }
 }

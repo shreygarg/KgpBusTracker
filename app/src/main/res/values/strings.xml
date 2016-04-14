@@ -4,4 +4,6 @@
     <string name="latitude_label">Latitude</string>
     <string name="longitude_label">Longitude</string>
     <string name="api_key2">AIzaSyCrILfaZRvQC6W11SN8t8zBK8mz4wHD3X0</string>
+    <string name="gps_not_found_title">Location not enabled</string>
+    <string name="gps_not_found_message">Do you want  to enable GPS?</string>
 </resources>
