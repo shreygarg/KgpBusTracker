@@ -128,18 +128,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             new AlertDialog.Builder(this)
                     .setTitle("Delete entry")
                     .setMessage("Are you sure you want to delete this entry?")
-                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    .setPositiveButton("yes", new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
                             System.exit(1);
                             // continue with delete
                         }
                     })
-                    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                    .setNegativeButton("no", new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
                             System.exit(1);
                         }
                     })
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+//                    .setIcon(android.R.drawable.ic_dialog_alert)
                     .show();
             System.exit(1);
         }
@@ -169,6 +169,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         hm = new HashMap<String, String>();
         hm.put("Shrey", "865072026684632");
 //        hm.put("Nitesh", "357215069705690");
+//        hm.put("Niru","")
+//        hm.put("Riya","357541050572447");
         noofbuses = hm.size();
         Firebase.setAndroidContext(this);
         myFirebaseRef = new Firebase("https://burning-inferno-1809.firebaseio.com/");
